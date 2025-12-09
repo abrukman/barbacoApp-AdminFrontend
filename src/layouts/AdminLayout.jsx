@@ -61,10 +61,16 @@ export default function AdminLayout({ children }){
             {/* Contenido principal */}
             <Box
                 component="main"
-                sx={{ flexGrow: 1, p: 3, mt: 8 }}
+                sx={{ 
+                    flexGrow: 1, 
+                    p: 3, 
+                    mt: 8,
+                    display: "flex",
+                    justifyContent: "center",
+                }}
                 >
-                    { children }
-                </Box>
+                { children }
+            </Box>
         </Box>
     );
 };
