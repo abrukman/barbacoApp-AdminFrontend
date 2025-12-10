@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
 import  SendIcon  from "@mui/icons-material/Send";
@@ -13,6 +13,8 @@ export default function EditarCancion() {
     const [descripcion, setDescripcion] = useState('');
     const [letra, setLetra] = useState('');
     const [portada, setPortada] = useState(null);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         if(cancion) {
@@ -45,7 +47,10 @@ export default function EditarCancion() {
             formData.append('portada', portada);
         };
 
+
         await edit(id, formData);
+        navigate('/canciones');  
+
     };
 
     return (

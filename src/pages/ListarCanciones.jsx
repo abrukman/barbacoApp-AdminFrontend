@@ -44,10 +44,10 @@ export default function ListarCanciones() {
                 {canciones.map((cancion) => {
                     const id = cancion.id;
                     return (
-                        <Grid key={id} size={{ xs: 12, sm: 6, md: 4}}>
+                        <Grid key={id} size={{ xs: 12, sm: 6, md: 3}}>
                             <Card sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
                                 {cancion.portada && (
-                                    <CardMedia component="img" height="140" image={cancion.portada.url} alt={cancion.titulo || "portada"} />
+                                    <CardMedia component="img" /* height="140" */ image={cancion.portada.url} alt={cancion.titulo || "portada"} />
                                 )}
                                 <CardContent sx={{ flexGrow: 1 }}>
                                     <Typography variant="h6">{cancion.titulo || "Sin título"}</Typography>

@@ -3,6 +3,7 @@ import { Box, Button, TextField, Typography } from "@mui/material";
 import { CloudUpload } from "@mui/icons-material";
 import  SendIcon  from "@mui/icons-material/Send";
 import  { useCanciones }  from "../contexts/CancionesContext";
+import { useNavigate } from "react-router-dom";
 
 export default function AgregarCancion() {
     const { add, loading } = useCanciones();
@@ -16,6 +17,8 @@ export default function AgregarCancion() {
         instrumento: 'cifrado',
         archivo: 'http://nube.com/cifrado-invierno.svg'
     }];
+
+    const navigate = useNavigate();
     async function handleSubmit(e) {
         e.preventDefault();
 
@@ -28,7 +31,10 @@ export default function AgregarCancion() {
 
         if(portada) formData.append('portada', portada);
 
+
         await add(formData);
+        navigate('/canciones');
+        
     };
 
     return (
