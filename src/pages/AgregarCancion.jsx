@@ -3,6 +3,9 @@ import {
   Alert,
   Box,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogActions,
   IconButton,
   TextField,
   Typography,
@@ -28,36 +31,35 @@ export default function AgregarCancion() {
       archivos: [],
     },
   ]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const archivos = partituras.flatMap((p) => p.archivos);
   const puedeEnviar = partituras.some(
     (p) => p.instrumento && p.archivos.length > 0,
   );
-  const contarInstrumentos = () => {
-    const count = {};
-    partituras.forEach((p) => {
-      if (!p.instrumento) return;
-      count[p.instrumento] = (count[p.instrumento] || 0) + 1;
-    });
-    return count;
-  };
-  const instrumentosCount = contarInstrumentos();
-  const calcularIndices = () => {
-    const contador = {};
-    return partituras.map((p) => {
-      if (!p.instrumento) return { ...p, indice: null };
 
-      contador[p.instrumento] = (contador[p.instrumento] || 0) + 1;
+  function calcularNuevoRol(instrumento) {
+    const delInstrumento = partituras.filter(
+      (p) => p.instrumento === instrumento && !p.eliminar,
+    );
 
-      return {
-        ...p,
-        indice: contador[p.instrumento],
-      };
-    });
-  };
-  const partiturasConIndice = calcularIndices().map((p) => ({
-    ...p,
-    total: p.instrumento ? instrumentosCount[p.instrumento] : 0,
-  }));
+    //no existe ninguna => rol null
+    if (delInstrumento.length === 0) {
+      return null;
+    }
+
+    //buscar roles existentes
+    const rolesNumericos = delInstrumento
+      .filter((p) => p.rol !== null && p.rol !== undefined)
+      .map((p) => Number(p.rol))
+      .filter((r) => !isNaN(r));
+
+    //si solo existe null asignar 2
+    if (rolesNumericos.length === 0) {
+      return 2;
+    }
+
+    return Math.max(...rolesNumericos) + 1;
+  }
   const removerPartitura = (index) => {
     // si borramos el último devuelve el genérico
     setPartituras((prev) => {
@@ -72,9 +74,9 @@ export default function AgregarCancion() {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const metadata = partiturasConIndice.map((p) => ({
+    const metadata = partituras.map((p) => ({
       instrumento: p.instrumento,
-      rol: p.total > 1 ? String(p.indice) : null,
+      rol: p.rol,
       cantidadArchivos: p.archivos.length,
     }));
 
@@ -86,8 +88,10 @@ export default function AgregarCancion() {
     if (portada) formData.append("portada", portada);
     formData.append("partiturasMetadata", JSON.stringify(metadata));
     archivos.forEach((file) => {
-      formData.append("partituras", file);
+      formData.append("archivosPartituras", file);
     });
+
+    console.log(formData);
 
     await add(formData);
     navigate("/canciones");
@@ -164,7 +168,7 @@ export default function AgregarCancion() {
           onChange={(e) => setLetra(e.target.value)}
         />
 
-        {partiturasConIndice.map((p, index) => (
+        {partituras.map((p, index) => (
           <PartituraSlot
             key={index}
             index={index}
@@ -176,6 +180,7 @@ export default function AgregarCancion() {
               setPartituras(nuevas);
             }}
             onRemove={removerPartitura}
+            calcularNuevoRol={calcularNuevoRol}
           />
         ))}
 
@@ -208,17 +213,37 @@ export default function AgregarCancion() {
 
         <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
           <Button
-            type="submit"
+            type="button"
             variant="contained"
             color="primary"
             disabled={loading || !puedeEnviar}
             sx={{ mt: 2 }}
             endIcon={<SendIcon />}
+            onClick={() => setConfirmOpen(true)}
           >
             {loading ? "Guardando..." : "Crear"}
           </Button>
         </Box>
       </form>
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+        <DialogTitle>¿Crear canción?</DialogTitle>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              setConfirmOpen(false);
+
+              await handleSubmit({
+                preventDefault: () => {},
+              });
+            }}
+          >
+            Crear
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

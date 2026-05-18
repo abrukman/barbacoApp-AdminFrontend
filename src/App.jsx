@@ -1,9 +1,9 @@
 import AdminLayout from "./layouts/AdminLayout";
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-import ListarCanciones from "./pages/ListarCanciones"
+import ListarCanciones from "./pages/ListarCanciones";
 import AgregarCancion from "./pages/AgregarCancion";
-import EditarCancion from "./pages/EditarCancion";
+import VerCancion from "./pages/VerCancion";
 import { Alert, Snackbar } from "@mui/material";
 import { useCanciones } from "./contexts/CancionesContext";
 
@@ -15,27 +15,23 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/canciones" element={<ListarCanciones />} />
-        <Route path="/canciones/nueva" element={<AgregarCancion />}/>
-        <Route path="/canciones/:id/editar" element={<EditarCancion />} />
+        <Route path="/canciones/nueva" element={<AgregarCancion />} />
+        <Route path="/canciones/:id" element={<VerCancion />} />
       </Routes>
-      
+
       <Snackbar
         open={Boolean(snack)}
         autoHideDuration={3000}
         onClose={closeSnack}
       >
         {snack && (
-          <Alert
-            severity={snack.severity}
-            onClose={closeSnack}
-            >
-              {snack.message}
-            </Alert>
-          )
-        }
+          <Alert severity={snack.severity} onClose={closeSnack}>
+            {snack.message}
+          </Alert>
+        )}
       </Snackbar>
     </AdminLayout>
-  )
+  );
 }
 
-export default App
+export default App;

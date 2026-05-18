@@ -13,7 +13,8 @@ import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import { useEffect, useState } from "react";
+import UndoIcon from "@mui/icons-material/Undo";
+import { useState } from "react";
 
 export default function PartituraSlot({
   data,
@@ -21,6 +22,7 @@ export default function PartituraSlot({
   index,
   onRemove,
   puedeEliminar,
+  calcularNuevoRol,
 }) {
   const handleChange = (field, value) => {
     onChange(index, {
@@ -32,44 +34,83 @@ export default function PartituraSlot({
     str.trim().length ? str.charAt(0).toUpperCase() + str.slice(1) : "";
   const titulo = data.instrumento
     ? data.total > 1
-      ? `${capitalizar(data.instrumento)} ${data.indice}`
+      ? `${capitalizar(data.instrumento)} ${data.rol}`
       : capitalizar(data.instrumento)
     : `Partitura ${index + 1}`;
-  const esDuplicado = data.total > 1;
-  const getPreview = (file) => URL.createObjectURL(file);
+  const esPartituraExistente = Boolean(data._id);
+  const tieneReemplazoPendiente = data.nuevosArchivos?.length > 0;
+  const puedeEditarArchivos = !data._id || tieneReemplazoPendiente;
+  const archivosMostrados =
+    data.nuevosArchivos?.length > 0 ? data.nuevosArchivos : data.archivos;
+  const campoArchivos = tieneReemplazoPendiente ? "nuevosArchivos" : "archivos";
+  //const esDuplicado = data.total > 1;
+  const getPreview = (file) => {
+    if (file instanceof File) {
+      return URL.createObjectURL(file);
+    }
+
+    if (file?.url) {
+      return file.url;
+    }
+
+    return "";
+  };
+
   const moverArchivo = (from, to) => {
-    const nuevos = [...data.archivos];
+    const nuevos = [...archivosMostrados];
     const [movido] = nuevos.splice(from, 1);
     nuevos.splice(to, 0, movido);
 
-    handleChange("archivos", nuevos);
+    handleChange(campoArchivos, nuevos);
   };
   const eliminarArchivo = (indexArchivo) => {
-    const nuevos = data.archivos.filter((_, i) => i !== indexArchivo);
-    handleChange("archivos", nuevos);
+    const nuevos = archivosMostrados.filter((_, i) => i !== indexArchivo);
+    handleChange(campoArchivos, nuevos);
   };
   const [previewIndex, setPreviewIndex] = useState(null);
   const archivoActual =
-    previewIndex !== null ? data.archivos[previewIndex] : null;
+    previewIndex !== null ? archivosMostrados[previewIndex] : null;
 
   const irAnterior = () => {
     setPreviewIndex((prev) => Math.max(prev - 1, 0));
   };
   const irSiguiente = () => {
-    setPreviewIndex((prev) => Math.min(prev + 1, data.archivos.length - 1));
+    setPreviewIndex((prev) => Math.min(prev + 1, archivosMostrados.length - 1));
   };
-
-  useEffect(() => {
-    if (!esDuplicado && data.rol) {
-      handleChange("rol", null);
-    }
-  }, [esDuplicado]);
 
   return (
     <>
-      <Box sx={{ border: "1px solid #ccc", p: 2, mt: 2, borderRadius: 2 }}>
+      <Box
+        sx={{
+          border: "1px solid",
+          borderColor: data.eliminar ? "error.main" : "divider",
+          backgroundColor: data.eliminar
+            ? "rgba(255, 0, 0, 0.04)"
+            : "background.paper",
+          opacity: data.eliminar ? 0.75 : 1,
+          p: 2,
+          mt: 2,
+          borderRadius: 2,
+          transition: "0.2s",
+        }}
+      >
+        {data.eliminar && (
+          <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+            Esta partitura será eliminada al guardar los cambios
+          </Typography>
+        )}
+        {esPartituraExistente && !tieneReemplazoPendiente && !data.eliminar && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Esta partitura se reemplaza completa. No se editan páginas
+            individuales.
+          </Typography>
+        )}
+        {tieneReemplazoPendiente && (
+          <Typography color="warning.main" variant="body2" sx={{ mb: 2 }}>
+            Esta partitura será reemplazada al guardar.
+          </Typography>
+        )}
         <Typography variant="subtitle1">{titulo}</Typography>
-
         {/* Instrumento */}
         <Box sx={{ display: "flex", gap: 2 }}>
           <TextField
@@ -78,7 +119,18 @@ export default function PartituraSlot({
             sx={{ flex: 2 }}
             margin="normal"
             value={data.instrumento}
-            onChange={(e) => handleChange("instrumento", e.target.value)}
+            onChange={(e) => {
+              const instrumento = e.target.value;
+              const nuevoRol = !data._id
+                ? calcularNuevoRol(instrumento)
+                : data.rol;
+
+              onChange(index, {
+                ...data,
+                instrumento,
+                rol: nuevoRol,
+              });
+            }}
           >
             <MenuItem value="cifrado">cifrado</MenuItem>
             <MenuItem value="guitarra">guitarra</MenuItem>
@@ -96,27 +148,33 @@ export default function PartituraSlot({
             label="rol"
             sx={{ flex: 1 }}
             margin="normal"
-            value={data.total > 1 ? data.indice : ""}
-            disabled={!esDuplicado}
-            onChange={(e) => handleChange("rol", e.target.value)}
+            value={data.rol || ""}
+            disabled
           />
         </Box>
         {/* archivos */}
         <Button component="label" variant="contained" sx={{ mt: 1 }}>
-          Subir archivos
+          {esPartituraExistente ? "Reemplazar archivos" : "Subir archivos"}
           <input
             type="file"
             hidden
             multiple
             onChange={(e) => {
               const nuevos = Array.from(e.target.files);
-              handleChange("archivos", [...data.archivos, ...nuevos]);
+              if (esPartituraExistente) {
+                handleChange("nuevosArchivos", [
+                  ...(data.nuevosArchivos || []),
+                  ...nuevos,
+                ]);
+              } else {
+                handleChange("archivos", [...data.archivos, ...nuevos]);
+              }
             }}
           />
         </Button>
-        {data.archivos.length > 0 && (
+        {archivosMostrados.length > 0 && (
           <Typography variant="caption" sx={{ display: "block", mt: 1 }}>
-            {data.archivos.length} archivo(s)
+            {archivosMostrados.length} archivo(s)
           </Typography>
         )}
         <Box
@@ -128,7 +186,7 @@ export default function PartituraSlot({
             mt: 2,
           }}
         >
-          {data.archivos.map((file, i) => (
+          {archivosMostrados.map((file, i) => (
             <Box
               key={i}
               sx={{
@@ -156,49 +214,66 @@ export default function PartituraSlot({
               />
 
               <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
-                {file.name}
+                {file.name || file.publicId || "Archivo"}
               </Typography>
-              <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                {/* flecha izquierda */}
-                {i !== 0 && (
-                  <IconButton
-                    size="small"
-                    onClick={() => moverArchivo(i, i - 1)}
-                  >
-                    <ArrowCircleLeftIcon />
-                  </IconButton>
-                )}
+              {puedeEditarArchivos && (
+                <Box
+                  sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}
+                >
+                  {/* flecha izquierda */}
+                  {i !== 0 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => moverArchivo(i, i - 1)}
+                    >
+                      <ArrowCircleLeftIcon />
+                    </IconButton>
+                  )}
 
-                {/* flecha derecha */}
-                {i !== data.archivos.length - 1 && (
-                  <IconButton
-                    size="small"
-                    onClick={() => moverArchivo(i, i + 1)}
-                  >
-                    <ArrowCircleRightIcon />
-                  </IconButton>
-                )}
-              </Box>
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => eliminarArchivo(i)}
-                sx={{ position: "absolute", top: 0, right: 0 }}
-              >
-                <CloseIcon />
-              </IconButton>
+                  {/* flecha derecha */}
+                  {i !== archivosMostrados.length - 1 && (
+                    <IconButton
+                      size="small"
+                      onClick={() => moverArchivo(i, i + 1)}
+                    >
+                      <ArrowCircleRightIcon />
+                    </IconButton>
+                  )}
+                </Box>
+              )}
+              {puedeEditarArchivos && (
+                //boton quitar archivo
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => eliminarArchivo(i)}
+                  sx={{ position: "absolute", top: 0, right: 0 }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              )}
             </Box>
           ))}
         </Box>
         <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-          {puedeEliminar && (
+          {tieneReemplazoPendiente ? (
             <IconButton
-              color="error"
+              color="warning"
               size="small"
-              onClick={() => onRemove(index)}
+              onClick={() => handleChange("nuevosArchivos", [])}
             >
-              <DeleteIcon />
+              <UndoIcon />
             </IconButton>
+          ) : (
+            puedeEliminar && (
+              <IconButton
+                color="error"
+                size="small"
+                onClick={() => onRemove(index)}
+              >
+                {data.eliminar ? <UndoIcon /> : <DeleteIcon />}
+              </IconButton>
+            )
           )}
         </Box>
       </Box>
@@ -228,7 +303,7 @@ export default function PartituraSlot({
           {archivoActual && (
             <Box
               component="img"
-              src={URL.createObjectURL(archivoActual)}
+              src={getPreview(archivoActual)}
               sx={{
                 maxWidth: "100%",
                 maxHeight: "80vh",
@@ -238,7 +313,7 @@ export default function PartituraSlot({
           )}
 
           {/* flecha derecha */}
-          {previewIndex < data.archivos.length - 1 && (
+          {previewIndex < archivosMostrados.length - 1 && (
             <IconButton
               onClick={irSiguiente}
               sx={{
