@@ -32,8 +32,8 @@ export function CancionesProvider({ children }) {
   const add = async (formData) => {
     setLoading(true);
     try {
-      const nuevaCancion = await agregarCancion(formData);
-      setCanciones((prev) => [...prev, nuevaCancion]);
+      await agregarCancion(formData);
+      await load();
       setSnack({
         severity: "success",
         message: "Canción agregada correctamente",
