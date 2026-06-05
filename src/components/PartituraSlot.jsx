@@ -142,6 +142,7 @@ export default function PartituraSlot({
             <MenuItem value="saxoTenor">saxo tenor</MenuItem>
             <MenuItem value="saxoAlto">saxo alto</MenuItem>
             <MenuItem value="clarinete">clarinete</MenuItem>
+            <MenuItem value="flauta">flauta</MenuItem>
           </TextField>
           {/* rol por defecto deshabilitado */}
           <TextField
